@@ -21,7 +21,9 @@ import {
   AlertTriangle,
   Globe,
   HelpCircle,
-  Menu
+  Menu,
+  X,
+  Clock
 } from 'lucide-react';
 
 /**
@@ -148,6 +150,7 @@ const hashPassword = (str) => {
     const char = str.charCodeAt(i);
     hash = (hash << 5) - hash + char;
     hash = hash & hash;
+    hash = hash >>> 0; // Convert to unsigned 32 bit integer
   }
   return hash.toString();
 };
@@ -216,6 +219,216 @@ const Alert = ({ type = 'error', message }) => {
 };
 
 /**
+ * COMPONENT: AddReminderForm (State now fully encapsulated here)
+ */
+const AddReminderForm = ({ onSaveReminder }) => {
+    // Local state for the form input
+    const [newReminder, setNewReminder] = useState({ 
+        type: 'Feeding', 
+        time: '08:00', // Default time
+        livestock: 'cows', 
+        note: '' 
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setNewReminder(prev => ({...prev, [name]: value}));
+    };
+
+    const handleSubmit = () => {
+        if (!newReminder.time || !newReminder.note) return;
+        
+        // Pass the final reminder object back to the parent
+        onSaveReminder(newReminder);
+        
+        // Reset local state after submission
+        setNewReminder({ 
+            type: 'Feeding', 
+            time: '08:00', 
+            livestock: 'cows', 
+            note: '' 
+        });
+    };
+
+    return (
+        <div className="w-full md:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
+              <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-700"><Plus size={20} /></div>
+              Add New Task
+            </h3>
+            
+            <div className="space-y-4">
+              {/* Livestock Select */}
+              <div>
+                <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Livestock</label>
+                <select 
+                  name="livestock"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
+                  value={newReminder.livestock}
+                  onChange={handleChange}
+                >
+                  {Object.values(LIVESTOCK_DATA).map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Activity Type Select */}
+              <div>
+                <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Activity Type</label>
+                <select 
+                  name="type"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
+                  value={newReminder.type}
+                  onChange={handleChange}
+                >
+                  <option value="Feeding">Feeding</option>
+                  <option value="Vaccination">Vaccination</option>
+                  <option value="Cleaning">Cleaning</option>
+                  <option value="Checkup">Checkup</option>
+                </select>
+              </div>
+              
+              {/* Time and Details Inputs */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Time Input */}
+                <div>
+                    <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Time</label>
+                    <input 
+                        type="time" 
+                        name="time"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
+                        value={newReminder.time}
+                        onChange={handleChange}
+                    />
+                </div>
+                {/* Details Input (Now fixed by local state) */}
+                <div>
+                     <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Details</label>
+                     <input 
+                        type="text" 
+                        name="note"
+                        placeholder="e.g. Give hay"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
+                        value={newReminder.note}
+                        onChange={handleChange}
+                    />
+                </div>
+              </div>
+              
+              <Button onClick={handleSubmit} variant="primary" className="py-3 mt-4">Save Task</Button>
+            </div>
+        </div>
+    );
+};
+
+/**
+ * COMPONENT: Booking Modal
+ */
+const BookingModal = ({ isOpen, onClose }) => {
+    const [step, setStep] = useState(1);
+    const [bookingDetails, setBookingDetails] = useState({
+        vet: 'Dr. Abubakar',
+        time: '14:30',
+        date: '2024-12-20',
+        issue: ''
+    });
+
+    if (!isOpen) return null;
+
+    const handleBooking = () => {
+        setStep(2);
+        setTimeout(() => setStep(3), 2500);
+    };
+
+    const handleClose = () => {
+        setStep(1);
+        onClose();
+    }
+
+    return (
+        <div className="fixed inset-0 bg-stone-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl relative animate-in zoom-in-95 ease-out duration-300">
+                
+                <button 
+                    onClick={handleClose}
+                    className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors"
+                >
+                    <X size={24} />
+                </button>
+
+                {step === 1 && (
+                    <>
+                        <h3 className="text-2xl font-bold text-emerald-800 mb-2">Book Vet Consultation</h3>
+                        <p className="text-stone-600 mb-6">Schedule a 30-minute video session with a certified vet for ₦2,000.</p>
+                        
+                        <div className="space-y-4">
+                            <Input 
+                                label="Veterinarian" 
+                                value={bookingDetails.vet}
+                                onChange={() => {}} // Read-only for mock
+                                placeholder=""
+                                icon={Users}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input 
+                                    label="Preferred Date" 
+                                    type="date"
+                                    value={bookingDetails.date}
+                                    onChange={e => setBookingDetails({...bookingDetails, date: e.target.value})}
+                                    placeholder=""
+                                />
+                                <Input 
+                                    label="Preferred Time" 
+                                    type="time"
+                                    value={bookingDetails.time}
+                                    onChange={e => setBookingDetails({...bookingDetails, time: e.target.value})}
+                                    placeholder=""
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-stone-600 mb-1.5 ml-1">Describe Issue</label>
+                                <textarea
+                                    value={bookingDetails.issue}
+                                    onChange={e => setBookingDetails({...bookingDetails, issue: e.target.value})}
+                                    placeholder="e.g. My goat has been limping for two days."
+                                    rows="3"
+                                    className="w-full bg-white border border-stone-200 text-stone-800 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all shadow-sm"
+                                />
+                            </div>
+                            <Button onClick={handleBooking}>
+                                Confirm Booking & Pay ₦2,000
+                            </Button>
+                        </div>
+                    </>
+                )}
+
+                {step === 2 && (
+                    <div className="text-center py-10">
+                        <Clock size={48} className="animate-spin text-emerald-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-stone-800">Processing Payment...</h3>
+                        <p className="text-stone-500 mt-2">Connecting to payment gateway.</p>
+                    </div>
+                )}
+                
+                {step === 3 && (
+                    <div className="text-center py-10">
+                        <CheckCircle size={64} className="text-emerald-500 mx-auto mb-6" />
+                        <h3 className="text-2xl font-bold text-emerald-800 mb-2">Booking Confirmed!</h3>
+                        <p className="text-stone-600 font-medium">Your session is scheduled for {bookingDetails.date} at {bookingDetails.time}.</p>
+                        <p className="text-stone-500 text-sm mt-1">A video link will be sent to your phone number.</p>
+                        <Button onClick={handleClose} className="mt-8" variant="outline">
+                            Close
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+
+/**
  * MAIN APP COMPONENT
  */
 export default function App() {
@@ -226,10 +439,11 @@ export default function App() {
   const [formData, setFormData] = useState({ name: '', phone: '', password: '', pin: '', securityQ: '', securityA: '' });
   const [authError, setAuthError] = useState('');
   const [reminders, setReminders] = useState([]);
-  const [newReminder, setNewReminder] = useState({ type: 'Feeding', time: '', livestock: 'cows', note: '' });
   const [language, setLanguage] = useState('en');
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false); // New state for modal
 
   useEffect(() => {
+    // NOTE: In a real app, Firebase would handle user persistence
     setTimeout(() => {
       const storedUser = localStorage.getItem('lp_currentUser');
       if (storedUser) {
@@ -244,6 +458,11 @@ export default function App() {
       setLoading(false);
     }, 2000);
   }, []);
+
+  const handleAuthChange = (field, value) => {
+    setAuthError('');
+    setFormData(prev => ({...prev, [field]: value}));
+  }
 
   const handleSignup = (e) => {
     e.preventDefault();
@@ -312,19 +531,18 @@ export default function App() {
     setReminders(allReminders.filter(r => r.userId === userId));
   };
 
-  const addReminder = () => {
-    if (!newReminder.time || !newReminder.note) return;
+  // Handler passed to AddReminderForm
+  const handleSaveReminder = (newReminderData) => {
     const reminder = {
       id: generateId(),
       userId: user.phone,
-      ...newReminder,
+      ...newReminderData,
       completed: false
     };
     const allReminders = JSON.parse(localStorage.getItem('lp_reminders') || '[]');
     const updatedAll = [...allReminders, reminder];
     localStorage.setItem('lp_reminders', JSON.stringify(updatedAll));
     setReminders(updatedAll.filter(r => r.userId === user.phone));
-    setNewReminder({ type: 'Feeding', time: '', livestock: 'cows', note: '' });
   };
 
   const deleteReminder = (id) => {
@@ -429,6 +647,9 @@ export default function App() {
           <span className="text-xs font-medium">{TRANSLATIONS[language].settings}</span>
         </button>
       </div>
+      
+      {/* Booking Modal Render */}
+      <BookingModal isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} />
     </div>
   );
 
@@ -443,6 +664,8 @@ export default function App() {
         </div>
         <h1 className="text-4xl font-bold text-white tracking-tight mb-2">LivestockPal</h1>
         <p className="text-emerald-200 text-lg">Your Farm's Best Friend</p>
+        <span className='text-gray-200 text-sm text-center font-mono'>&copy; Copyrighted. All Rights Reserved</span>
+        <span className='text-gray-300 text-sm text-center font-stretch-semi-condensed'>Shafii Muhammad Shafii</span>
       </div>
     );
   }
@@ -474,7 +697,7 @@ export default function App() {
                 <Input 
                   label="Full Name" 
                   value={formData.name} 
-                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  onChange={e => handleAuthChange('name', e.target.value)}
                   placeholder="Musa Bello"
                   icon={Users}
                 />
@@ -484,10 +707,7 @@ export default function App() {
                 label="Phone Number" 
                 type="tel"
                 value={formData.phone} 
-                onChange={e => {
-                  setAuthError('');
-                  setFormData({...formData, phone: e.target.value});
-                }}
+                onChange={e => handleAuthChange('phone', e.target.value)}
                 placeholder="080 1234 5678"
                 icon={Phone}
               />
@@ -497,7 +717,7 @@ export default function App() {
                   label="Password" 
                   type="password"
                   value={formData.password} 
-                  onChange={e => setFormData({...formData, password: e.target.value})}
+                  onChange={e => handleAuthChange('password', e.target.value)}
                   placeholder="••••••"
                   icon={Shield}
                 />
@@ -509,14 +729,14 @@ export default function App() {
                     label="Security Question" 
                     placeholder="e.g. My first pet?"
                     value={formData.securityQ}
-                    onChange={e => setFormData({...formData, securityQ: e.target.value})}
+                    onChange={e => handleAuthChange('securityQ', e.target.value)}
                     icon={HelpCircle}
                   />
                   <Input 
                     label="Answer" 
                     placeholder="Bingo"
                     value={formData.securityA}
-                    onChange={e => setFormData({...formData, securityA: e.target.value})}
+                    onChange={e => handleAuthChange('securityA', e.target.value)}
                   />
                 </>
               )}
@@ -617,7 +837,7 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Revenue Placeholder */}
+              {/* Revenue Placeholder / Booking Button */}
               <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white shadow-lg mb-6 relative overflow-hidden md:flex md:items-center md:justify-between">
                  <div className="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
                    <DollarSign size={200} />
@@ -626,7 +846,10 @@ export default function App() {
                    <h4 className="font-bold text-xl mb-2">Premium Vet Consult</h4>
                    <p className="text-sm text-indigo-100 max-w-md">Get professional advice from certified veterinarians via video call. Available 24/7 for emergencies.</p>
                  </div>
-                 <button className="relative z-10 bg-white text-indigo-700 font-bold py-3 px-6 rounded-xl shadow-sm hover:bg-indigo-50 transition-colors whitespace-nowrap">
+                 <button 
+                    onClick={() => setIsBookingModalOpen(true)}
+                    className="relative z-10 bg-white text-indigo-700 font-bold py-3 px-6 rounded-xl shadow-sm hover:bg-indigo-50 transition-colors whitespace-nowrap active:scale-95"
+                 >
                    Book Now (₦2,000)
                  </button>
               </div>
@@ -713,66 +936,10 @@ export default function App() {
       <MainLayout>
         <div className="px-6 md:px-0 flex flex-col md:flex-row gap-8 items-start">
           
-          {/* Add Reminder Form */}
-          <div className="w-full md:w-1/3 bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
-            <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-              <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-700"><Plus size={20} /></div>
-              Add New Task
-            </h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Livestock</label>
-                <select 
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
-                  value={newReminder.livestock}
-                  onChange={e => setNewReminder({...newReminder, livestock: e.target.value})}
-                >
-                  {Object.values(LIVESTOCK_DATA).map(l => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Activity Type</label>
-                <select 
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
-                  value={newReminder.type}
-                  onChange={e => setNewReminder({...newReminder, type: e.target.value})}
-                >
-                  <option value="Feeding">Feeding</option>
-                  <option value="Vaccination">Vaccination</option>
-                  <option value="Cleaning">Cleaning</option>
-                  <option value="Checkup">Checkup</option>
-                </select>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Time</label>
-                    <input 
-                        type="time" 
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
-                        value={newReminder.time}
-                        onChange={e => setNewReminder({...newReminder, time: e.target.value})}
-                    />
-                </div>
-                <div>
-                     <label className="text-xs font-bold text-stone-500 uppercase ml-1 mb-1 block">Details</label>
-                     <input 
-                        type="text" 
-                        placeholder="e.g. Give hay"
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-stone-700 focus:outline-emerald-500"
-                        value={newReminder.note}
-                        onChange={e => setNewReminder({...newReminder, note: e.target.value})}
-                    />
-                </div>
-              </div>
-              
-              <Button onClick={addReminder} variant="primary" className="py-3 mt-4">Save Task</Button>
-            </div>
-          </div>
+          {/* Add Reminder Form - Now handles its own state for stable inputs */}
+          <AddReminderForm 
+            onSaveReminder={handleSaveReminder}
+          />
 
           {/* List */}
           <div className="w-full md:w-2/3">
